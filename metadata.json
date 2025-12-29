@@ -1,0 +1,7 @@
+{
+  "name": "TOWING - Assessoria Naval",
+  "description": "Sistema de gerenciamento de contratos e atividades navais com controle de progresso, colaboradores e geração de relatórios em PDF.",
+  "requestFramePermissions": [
+    "camera"
+  ]
+}
