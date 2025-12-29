@@ -115,7 +115,7 @@ export const generateWeeklyPDF = (contracts: Contract[], collaborators: Collabor
   
   const today = startOfDay(referenceDate);
   const monday = startOfWeek(today, { weekStartsOn: 1 });
-  const sunday = addDays(monday, 6);
+  const saturday = addDays(monday, 5); // Período termina no sábado
   const pageWidth = doc.internal.pageSize.getWidth();
 
   // Header Compacto Paisagem
@@ -124,11 +124,12 @@ export const generateWeeklyPDF = (contracts: Contract[], collaborators: Collabor
   doc.text('TOWING - Agenda Semanal', 14, 15);
   doc.setFontSize(9);
   doc.setTextColor(100);
-  doc.text(`Período: ${format(monday, 'dd/MM/yyyy')} a ${format(sunday, 'dd/MM/yyyy')} | Emitido: ${format(new Date(), 'dd/MM/yyyy')}`, pageWidth - 14, 15, { align: 'right' });
+  doc.text(`Período: ${format(monday, 'dd/MM/yyyy')} a ${format(saturday, 'dd/MM/yyyy')} | Emitido: ${format(new Date(), 'dd/MM/yyyy')}`, pageWidth - 14, 15, { align: 'right' });
 
   let currentY = 22;
   
-  const weekDays = [0, 1, 2, 3, 4, 5, 6].map(offset => addDays(monday, offset));
+  // Apenas de segunda a sábado (índices 0 a 5)
+  const weekDays = [0, 1, 2, 3, 4, 5].map(offset => addDays(monday, offset));
 
   weekDays.forEach((day) => {
     if (currentY > 180) {

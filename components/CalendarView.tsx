@@ -20,7 +20,8 @@ const CalendarView: React.FC<CalendarViewProps> = ({ contracts, collaborators })
   const monday = useMemo(() => startOfWeek(today, { weekStartsOn: 1 }), [today]);
   
   const weekDays = useMemo(() => {
-    return [0, 1, 2, 3, 4, 5, 6].map(offset => addDays(monday, offset));
+    // Retorna apenas de segunda (0) a sábado (5)
+    return [0, 1, 2, 3, 4, 5].map(offset => addDays(monday, offset));
   }, [monday]);
 
   const activeCollaborators = useMemo(() => 

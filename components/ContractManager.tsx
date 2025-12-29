@@ -1,7 +1,7 @@
 
 import React, { useState, useRef, useEffect } from 'react';
 import { Contract, Activity, Collaborator, ProgressLevel, ActivityStatus } from '../types';
-import { Plus, Trash2, Edit2, Archive, ArchiveRestore, CheckCircle2, AlertCircle, MessageSquare, Calendar, Camera, Loader2, Save, X, Lock, AlertTriangle } from 'lucide-react';
+import { Plus, Trash2, Edit2, Archive, ArchiveRestore, CheckCircle2, AlertCircle, MessageSquare, Calendar, Camera, Loader2, Save, X, Lock, AlertTriangle, ChevronDown, ChevronUp, Ship } from 'lucide-react';
 import { format, isAfter, parseISO, startOfDay } from 'date-fns';
 import { GoogleGenAI } from "@google/genai";
 import { generateSafeId } from '../App';
@@ -169,7 +169,11 @@ const ContractManager: React.FC<ContractManagerProps> = ({
   const [showArchived, setShowArchived] = useState(false);
   const [form, setForm] = useState({ number: '', startDate: '', endDate: '' });
 
-  const [passModal, setPassModal] = useState({ isOpen: false, type: '' as 'delete' | 'edit_number', targetId: '' });
+  const [passModal, setPassModal] = useState<{
+    isOpen: boolean;
+    type: 'delete' | 'edit_number' | '';
+    targetId: string;
+  }>({ isOpen: false, type: '', targetId: '' });
 
   const handleCreate = (e: React.FormEvent) => {
     e.preventDefault();
@@ -289,7 +293,7 @@ const ContractManager: React.FC<ContractManagerProps> = ({
         </div>
       )}
 
-      <div className="grid grid-cols-1 gap-6">
+      <div className="grid grid-cols-1 gap-4">
         {activeContracts.length === 0 && !isAdding && (
           <div className="text-center py-12 bg-white rounded-xl border-2 border-dashed border-slate-200 text-slate-400">
             Nenhum contrato ativo no momento.
@@ -321,7 +325,7 @@ const ContractManager: React.FC<ContractManagerProps> = ({
         </button>
 
         {showArchived && (
-          <div className="grid grid-cols-1 gap-6 mt-6 animate-in fade-in slide-in-from-bottom-2 duration-300">
+          <div className="grid grid-cols-1 gap-4 mt-6 animate-in fade-in slide-in-from-bottom-2 duration-300">
             {archivedContracts.length === 0 ? (
               <p className="text-center text-slate-400 text-sm italic">Nenhum contrato arquivado.</p>
             ) : (
@@ -355,6 +359,7 @@ const ContractCard: React.FC<{
   onArchive: () => void;
   onDelete: () => void;
 }> = ({ contract, collaborators, onUpdate, onEdit, onArchive, onDelete }) => {
+  const [isExpanded, setIsExpanded] = useState(false);
   const [isAddingActivity, setIsAddingActivity] = useState(false);
   const [isScanning, setIsScanning] = useState(false);
   const [actForm, setActForm] = useState({ description: '', startDate: '', endDate: '' });
@@ -444,89 +449,121 @@ const ContractCard: React.FC<{
   return (
     <div className={`bg-white rounded-xl shadow-sm border overflow-hidden transition-all relative ${contract.isArchived ? 'opacity-80 grayscale-[0.3]' : 'hover:shadow-md'}`}>
       {isScanning && (
-        <div className="absolute inset-0 bg-white/80 z-10 flex flex-col items-center justify-center backdrop-blur-sm">
+        <div className="absolute inset-0 bg-white/80 z-20 flex flex-col items-center justify-center backdrop-blur-sm">
           <Loader2 className="w-10 h-10 text-blue-600 animate-spin mb-2" />
           <p className="text-blue-600 font-bold uppercase text-xs tracking-widest">Processando...</p>
         </div>
       )}
       
-      <div className={`p-4 border-b flex justify-between items-center gap-2 ${isContractOverdue ? 'bg-orange-50 border-orange-200' : 'bg-slate-50'}`}>
-        <div className="min-w-0 flex-grow">
-          <h3 className="text-base sm:text-lg font-bold text-slate-900 flex items-center gap-2 truncate">Contrato #{contract.number}</h3>
-          <p className="text-xs sm:text-sm text-slate-500 font-medium">
-            {format(parseISO(contract.startDate), 'dd/MM/yy')} — {format(parseISO(contract.endDate), 'dd/MM/yy')}
-          </p>
-        </div>
-        <div className="flex gap-1 shrink-0">
-          <button onClick={onEdit} className="p-2 text-slate-400 hover:text-blue-600 rounded-lg transition-all" title="Editar"><Edit2 className="w-4 h-4" /></button>
-          <button onClick={onArchive} className="p-2 text-slate-400 hover:text-amber-600 rounded-lg transition-all" title="Arquivar"><Archive className="w-4 h-4" /></button>
-          <button onClick={onDelete} className="p-2 text-slate-400 hover:text-red-600 rounded-lg transition-all" title="Excluir"><Trash2 className="w-4 h-4" /></button>
-        </div>
-      </div>
-
-      <div className="p-4 space-y-4">
-        <div>
-          <label className="text-[10px] font-bold text-slate-400 uppercase block mb-2 tracking-wider">Equipe Designada</label>
-          <div className="flex flex-wrap gap-2">
-            {collaborators.filter(c => !c.isArchived || contract.collaboratorIds.includes(c.id)).map(c => (
-              <button
-                key={c.id}
-                onClick={() => toggleCollaborator(c.id)}
-                className={`px-3 py-1.5 rounded-full text-[10px] sm:text-xs font-bold border transition-all ${
-                  contract.collaboratorIds.includes(c.id) ? 'bg-blue-600 border-blue-600 text-white shadow-sm' : 'bg-white border-slate-200 text-slate-500 hover:border-blue-400'
-                }`}
-              >
-                {c.name}
-              </button>
-            ))}
+      {/* Cabeçalho que atua como Miniatura/Botão de Expansão */}
+      <div 
+        onClick={() => setIsExpanded(!isExpanded)}
+        className={`p-3 sm:p-4 border-b flex justify-between items-center gap-2 cursor-pointer transition-colors ${isContractOverdue ? 'bg-orange-50 border-orange-200' : 'bg-slate-50 hover:bg-slate-100'}`}
+      >
+        <div className="flex items-center gap-3 min-w-0 flex-grow">
+          <div className={`p-1.5 sm:p-2 rounded-lg ${isContractOverdue ? 'bg-orange-600' : 'bg-blue-600'} text-white shadow-sm shrink-0`}>
+             <Ship className="w-4 h-4 sm:w-5 sm:h-5" />
           </div>
-        </div>
-
-        <div className="space-y-3">
-          <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2">
-            <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Atividades</label>
-            {!contract.isArchived && (
-              <div className="flex flex-wrap items-center gap-3 w-full sm:w-auto">
-                <input type="file" accept="image/*" className="hidden" ref={fileInputRef} onChange={handleFileUpload} />
-                <button onClick={() => fileInputRef.current?.click()} className="text-[10px] text-amber-600 font-black flex items-center gap-1.5 hover:text-amber-700 transition-colors uppercase">
-                  <Camera className="w-3.5 h-3.5" /> Usar foto do contrato
-                </button>
-                <button onClick={() => setIsAddingActivity(true)} className="text-[10px] text-blue-600 font-black flex items-center gap-1.5 hover:text-blue-700 transition-colors uppercase ml-auto sm:ml-0">
-                  <Plus className="w-3.5 h-3.5" /> Nova Atividade
-                </button>
-              </div>
-            )}
-          </div>
-          
-          {isAddingActivity && (
-            <form onSubmit={addActivity} className="bg-slate-50 p-3 rounded-lg border border-slate-200 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3 animate-in fade-in">
-              <input required className="sm:col-span-2 px-3 py-2 border border-slate-300 rounded-md text-sm outline-none bg-white text-slate-900 focus:ring-2 focus:ring-blue-100" placeholder="Descrição da atividade..." value={actForm.description} onChange={e => setActForm({ ...actForm, description: e.target.value })} />
-              <input required type="date" className="px-3 py-2 border border-slate-300 rounded-md text-sm bg-white text-slate-900 outline-none" value={actForm.startDate} onChange={e => setActForm({ ...actForm, startDate: e.target.value })} />
-              <input required type="date" className="px-3 py-2 border border-slate-300 rounded-md text-sm bg-white text-slate-900 outline-none" value={actForm.endDate} onChange={e => setActForm({ ...actForm, endDate: e.target.value })} />
-              <div className="flex gap-2">
-                <button type="submit" className="flex-1 bg-blue-600 text-white rounded-md text-xs font-bold hover:bg-blue-700 shadow-sm transition-colors">Criar</button>
-                <button type="button" onClick={() => setIsAddingActivity(false)} className="px-2 text-slate-400 hover:text-slate-600"><Trash2 className="w-4 h-4"/></button>
-              </div>
-            </form>
-          )}
-
-          <div className="space-y-2">
-            {contract.activities.map(activity => (
-              <ActivityRow 
-                key={activity.id} 
-                activity={activity} 
-                contractEndDate={contract.endDate}
-                onUpdate={(up) => updateActivity(activity.id, up)}
-                onDelete={() => deleteActivity(activity.id)}
-                disabled={contract.isArchived}
-              />
-            ))}
-            {contract.activities.length === 0 && !isAddingActivity && (
-              <p className="text-center py-4 text-xs text-slate-400 italic">Nenhuma atividade cadastrada.</p>
+          <div className="min-w-0">
+            <h3 className="text-sm sm:text-lg font-black text-slate-900 truncate">Contrato #{contract.number}</h3>
+            {isExpanded && (
+              <p className="text-[10px] sm:text-xs text-slate-500 font-bold uppercase tracking-wider animate-in fade-in duration-300">
+                Vigência: {format(parseISO(contract.startDate), 'dd/MM/yy')} — {format(parseISO(contract.endDate), 'dd/MM/yy')}
+              </p>
             )}
           </div>
         </div>
+        
+        <div className="flex items-center gap-1 sm:gap-2 shrink-0">
+          {/* Botões de Ação Rápidos (Visíveis mesmo colapsados) */}
+          <div className="flex items-center gap-1 sm:mr-2" onClick={(e) => e.stopPropagation()}>
+            <button onClick={onEdit} className="p-1.5 text-slate-400 hover:text-blue-600 rounded-lg transition-all"><Edit2 className="w-3.5 h-3.5 sm:w-4 sm:h-4" /></button>
+            <button onClick={onArchive} className="p-1.5 text-slate-400 hover:text-amber-600 rounded-lg transition-all"><Archive className="w-3.5 h-3.5 sm:w-4 sm:h-4" /></button>
+            <button onClick={onDelete} className="p-1.5 text-slate-300 hover:text-red-600 rounded-lg transition-all"><Trash2 className="w-3.5 h-3.5 sm:w-4 sm:h-4" /></button>
+          </div>
+          <div className="h-6 w-px bg-slate-200 mx-1 hidden sm:block" />
+          {isExpanded ? <ChevronUp className="w-5 h-5 text-slate-400" /> : <ChevronDown className="w-5 h-5 text-slate-400" />}
+        </div>
       </div>
+
+      {/* Conteúdo Expansível */}
+      {isExpanded && (
+        <div className="p-4 space-y-5 animate-in slide-in-from-top-2 duration-300 border-t border-slate-100">
+          <div className="flex flex-col sm:flex-row justify-between gap-4">
+             <div className="flex-1">
+                <label className="text-[10px] font-bold text-slate-400 uppercase block mb-2 tracking-wider">Equipe Designada</label>
+                <div className="flex flex-wrap gap-2">
+                  {collaborators.filter(c => !c.isArchived || contract.collaboratorIds.includes(c.id)).map(c => (
+                    <button
+                      key={c.id}
+                      onClick={() => toggleCollaborator(c.id)}
+                      className={`px-3 py-1.5 rounded-full text-[10px] sm:text-xs font-bold border transition-all ${
+                        contract.collaboratorIds.includes(c.id) ? 'bg-blue-600 border-blue-600 text-white shadow-sm' : 'bg-white border-slate-200 text-slate-500 hover:border-blue-400'
+                      }`}
+                    >
+                      {c.name}
+                    </button>
+                  ))}
+                </div>
+             </div>
+             
+             <div className="flex flex-col items-end gap-1 shrink-0">
+                <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Progresso Geral</span>
+                <div className="w-32 h-2 bg-slate-100 rounded-full overflow-hidden border border-slate-200">
+                   <div 
+                    className="h-full bg-blue-600 transition-all duration-700" 
+                    style={{ width: `${contract.activities.length > 0 ? (contract.activities.reduce((acc, a) => acc + a.progress, 0) / contract.activities.length) : 0}%` }} 
+                   />
+                </div>
+             </div>
+          </div>
+
+          <div className="space-y-3">
+            <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2">
+              <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Atividades</label>
+              {!contract.isArchived && (
+                <div className="flex flex-wrap items-center gap-3 w-full sm:w-auto">
+                  <input type="file" accept="image/*" className="hidden" ref={fileInputRef} onChange={handleFileUpload} />
+                  <button onClick={() => fileInputRef.current?.click()} className="text-[10px] text-amber-600 font-black flex items-center gap-1.5 hover:text-amber-700 transition-colors uppercase">
+                    <Camera className="w-3.5 h-3.5" /> Usar foto
+                  </button>
+                  <button onClick={() => setIsAddingActivity(true)} className="text-[10px] text-blue-600 font-black flex items-center gap-1.5 hover:text-blue-700 transition-colors uppercase ml-auto sm:ml-0">
+                    <Plus className="w-3.5 h-3.5" /> Nova Atividade
+                  </button>
+                </div>
+              )}
+            </div>
+            
+            {isAddingActivity && (
+              <form onSubmit={addActivity} className="bg-slate-50 p-3 rounded-lg border border-slate-200 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3 animate-in fade-in">
+                <input required className="sm:col-span-2 px-3 py-2 border border-slate-300 rounded-md text-sm outline-none bg-white text-slate-900 focus:ring-2 focus:ring-blue-100" placeholder="Descrição..." value={actForm.description} onChange={e => setActForm({ ...actForm, description: e.target.value })} />
+                <input required type="date" className="px-3 py-2 border border-slate-300 rounded-md text-sm bg-white text-slate-900 outline-none" value={actForm.startDate} onChange={e => setActForm({ ...actForm, startDate: e.target.value })} />
+                <input required type="date" className="px-3 py-2 border border-slate-300 rounded-md text-sm bg-white text-slate-900 outline-none" value={actForm.endDate} onChange={e => setActForm({ ...actForm, endDate: e.target.value })} />
+                <div className="flex gap-2">
+                  <button type="submit" className="flex-1 bg-blue-600 text-white rounded-md text-xs font-bold hover:bg-blue-700 shadow-sm transition-colors">Criar</button>
+                  <button type="button" onClick={() => setIsAddingActivity(false)} className="px-2 text-slate-400 hover:text-slate-600"><Trash2 className="w-4 h-4"/></button>
+                </div>
+              </form>
+            )}
+
+            <div className="space-y-2">
+              {contract.activities.map(activity => (
+                <ActivityRow 
+                  key={activity.id} 
+                  activity={activity} 
+                  contractEndDate={contract.endDate}
+                  onUpdate={(up) => updateActivity(activity.id, up)}
+                  onDelete={() => deleteActivity(activity.id)}
+                  disabled={contract.isArchived}
+                />
+              ))}
+              {contract.activities.length === 0 && !isAddingActivity && (
+                <p className="text-center py-4 text-xs text-slate-400 italic">Nenhuma atividade cadastrada.</p>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };
@@ -564,7 +601,7 @@ const ActivityRow: React.FC<{
   }
 
   return (
-    <div className={`p-3 rounded-lg border flex flex-col md:flex-row justify-between gap-3 ${isOverdue ? 'bg-orange-50 border-orange-300 shadow-sm' : 'bg-white border-slate-200'}`}>
+    <div className={`p-3 rounded-lg border flex flex-col lg:flex-row justify-between gap-3 ${isOverdue ? 'bg-orange-50 border-orange-300 shadow-sm' : 'bg-white border-slate-200'}`}>
       <SimpleConfirmModal 
         isOpen={showDeleteConfirm}
         title="Excluir Atividade?"
@@ -582,33 +619,33 @@ const ActivityRow: React.FC<{
       
       <div className="flex items-start gap-2 flex-grow min-w-0">
         <div className={`mt-1 flex-shrink-0 w-4 h-4 rounded-full border transition-colors ${activity.progress === 100 ? 'bg-emerald-500 border-emerald-500' : 'border-slate-300 bg-white'}`} />
-        <span className={`text-sm font-bold break-words leading-snug ${activity.progress === 100 ? 'text-slate-400 line-through' : 'text-slate-800'}`}>
+        <span className={`text-xs sm:text-sm font-bold break-words leading-snug ${activity.progress === 100 ? 'text-slate-400 line-through' : 'text-slate-800'}`}>
           {activity.description}
         </span>
       </div>
       
-      <div className="flex flex-wrap items-center gap-3 shrink-0 pt-1 md:pt-0 border-t md:border-0 border-slate-100">
+      <div className="flex flex-wrap items-center gap-2 sm:gap-3 shrink-0 pt-1 lg:pt-0 border-t lg:border-0 border-slate-100">
         <div className="relative">
           <button 
             disabled={disabled}
             onMouseEnter={() => setIsHoveringNotes(true)}
             onMouseLeave={() => setIsHoveringNotes(false)}
             onClick={() => setShowNotesPopup(true)}
-            className={`p-2 rounded-lg transition-all border shrink-0 ${activity.notes ? 'bg-emerald-500 text-white border-emerald-600 shadow-sm' : 'bg-white text-slate-400 border-slate-200 hover:border-blue-400 hover:text-blue-600'}`}
+            className={`p-1.5 rounded-lg transition-all border shrink-0 ${activity.notes ? 'bg-emerald-500 text-white border-emerald-600 shadow-sm' : 'bg-white text-slate-400 border-slate-200 hover:border-blue-400 hover:text-blue-600'}`}
           >
             <MessageSquare className="w-3.5 h-3.5" />
           </button>
           
           {isHoveringNotes && activity.notes && (
             <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-3 w-64 sm:w-80 bg-white text-slate-900 p-6 rounded-2xl shadow-2xl z-[150] border-2 border-slate-200 animate-in fade-in zoom-in-95 pointer-events-none">
-              <p className="text-xl sm:text-2xl font-bold leading-snug break-words text-center">{activity.notes}</p>
+              <p className="text-lg sm:text-2xl font-bold leading-snug break-words text-center">{activity.notes}</p>
               <div className="absolute top-full left-1/2 -translate-x-1/2 border-[10px] border-transparent border-t-white" />
               <div className="absolute top-full left-1/2 -translate-x-1/2 border-[12px] border-transparent border-t-slate-200 -z-10 translate-y-[1px]" />
             </div>
           )}
         </div>
 
-        <div className="flex items-center gap-1 text-[10px] font-bold text-slate-500 bg-slate-100 px-2 py-1 rounded shrink-0">
+        <div className="flex items-center gap-1 text-[9px] sm:text-[10px] font-bold text-slate-500 bg-slate-100 px-2 py-1 rounded shrink-0">
           <Calendar className="w-3 h-3" /> {format(parseISO(activity.endDate), 'dd/MM/yy')}
         </div>
         
@@ -616,19 +653,19 @@ const ActivityRow: React.FC<{
           disabled={disabled} 
           value={activity.status} 
           onChange={e => onUpdate({ status: e.target.value as ActivityStatus })} 
-          className="text-[10px] font-bold border border-slate-300 rounded px-1.5 py-1 bg-white outline-none focus:ring-2 focus:ring-blue-50 focus:border-blue-400 shrink-0"
+          className="text-[9px] sm:text-[10px] font-bold border border-slate-300 rounded px-1.5 py-1 bg-white outline-none shrink-0"
         >
           <option value={ActivityStatus.ANDAMENTO}>Andamento</option>
           <option value={ActivityStatus.INTERROMPIDO}>Pausado</option>
         </select>
         
-        <div className="flex items-center gap-1 shrink-0">
+        <div className="flex items-center gap-0.5 shrink-0">
           {[25, 50, 75, 100].map(level => (
             <button 
               key={level} 
               disabled={disabled} 
               onClick={() => onUpdate({ progress: activity.progress === level ? 0 : level as ProgressLevel })} 
-              className={`w-7 h-6 text-[9px] font-black border rounded transition-all ${activity.progress >= level ? 'bg-blue-600 text-white border-blue-600' : 'bg-white text-slate-400 border-slate-200 hover:border-blue-300'}`}
+              className={`w-7 sm:w-8 h-6 text-[8px] sm:text-[9px] font-black border rounded transition-all ${activity.progress >= level ? 'bg-blue-600 text-white border-blue-600' : 'bg-white text-slate-400 border-slate-200 hover:border-blue-300'}`}
             >
               {level}%
             </button>
@@ -636,9 +673,9 @@ const ActivityRow: React.FC<{
         </div>
         
         {!disabled && (
-          <div className="flex items-center gap-1 ml-auto md:ml-2">
-            <button onClick={() => setIsEditing(true)} className="p-1.5 text-slate-400 hover:text-blue-600 transition-colors rounded-md" title="Editar"><Edit2 className="w-4 h-4" /></button>
-            <button onClick={() => setShowDeleteConfirm(true)} className="p-1.5 text-slate-300 hover:text-red-500 transition-colors rounded-md" title="Excluir"><Trash2 className="w-4 h-4" /></button>
+          <div className="flex items-center gap-1 ml-auto lg:ml-2">
+            <button onClick={() => setIsEditing(true)} className="p-1.5 text-slate-400 hover:text-blue-600 transition-colors rounded-md" title="Editar"><Edit2 className="w-3.5 h-3.5 sm:w-4 sm:h-4" /></button>
+            <button onClick={() => setShowDeleteConfirm(true)} className="p-1.5 text-slate-300 hover:text-red-500 transition-colors rounded-md" title="Excluir"><Trash2 className="w-3.5 h-3.5 sm:w-4 sm:h-4" /></button>
           </div>
         )}
       </div>
