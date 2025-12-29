@@ -487,7 +487,7 @@ const ContractCard: React.FC<{
             <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Atividades</label>
             {!contract.isArchived && (
               <div className="flex flex-wrap items-center gap-3 w-full sm:w-auto">
-                <input type="file" accept="image/*" capture="environment" className="hidden" ref={fileInputRef} onChange={handleFileUpload} />
+                <input type="file" accept="image/*" className="hidden" ref={fileInputRef} onChange={handleFileUpload} />
                 <button onClick={() => fileInputRef.current?.click()} className="text-[10px] text-amber-600 font-black flex items-center gap-1.5 hover:text-amber-700 transition-colors uppercase">
                   <Camera className="w-3.5 h-3.5" /> Usar foto do contrato
                 </button>

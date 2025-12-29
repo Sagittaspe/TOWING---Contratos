@@ -1,12 +1,101 @@
+
 <!DOCTYPE html>
 <html lang="pt-BR">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>TOWING - Assessoria Naval | Sistema de Contratos</title>
-  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='0.9em' font-size='90'>🚢</text></svg>">
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>TOWING - Assessoria Naval</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.28/jspdf.plugin.autotable.min.js"></script>
+    <style>
+        /* Estilos de Alto Contraste */
+        body.high-contrast {
+            background-color: #000 !important;
+            color: #fff !important;
+        }
+        
+        body.high-contrast .bg-white {
+            background-color: #121212 !important;
+            border-color: #facc15 !important;
+        }
+
+        body.high-contrast .text-slate-800,
+        body.high-contrast .text-slate-900,
+        body.high-contrast .text-slate-700 {
+            color: #fff !important;
+        }
+
+        body.high-contrast .text-slate-500,
+        body.high-contrast .text-slate-400 {
+            color: #fbbf24 !important;
+        }
+
+        body.high-contrast .border,
+        body.high-contrast .border-slate-200,
+        body.high-contrast .border-slate-300 {
+            border-color: #facc15 !important;
+            border-width: 2px !important;
+        }
+
+        body.high-contrast button {
+            border: 2px solid transparent;
+        }
+
+        body.high-contrast .bg-slate-50,
+        body.high-contrast .bg-slate-100 {
+            background-color: #1a1a1a !important;
+        }
+
+        body.high-contrast .hover\:bg-blue-50:hover,
+        body.high-contrast .hover\:bg-slate-100:hover {
+            background-color: #facc15 !important;
+            color: #000 !important;
+        }
+
+        body.high-contrast input,
+        body.high-contrast select,
+        body.high-contrast textarea {
+            background-color: #000 !important;
+            color: #fff !important;
+            border-color: #facc15 !important;
+        }
+
+        body.high-contrast .bg-blue-600 {
+            background-color: #fff !important;
+            color: #000 !important;
+        }
+
+        body.high-contrast .text-blue-600,
+        body.high-contrast .text-blue-400 {
+            color: #facc15 !important;
+        }
+
+        body.high-contrast .bg-orange-50 {
+            background-color: #291a00 !important;
+            border-color: #fbbf24 !important;
+        }
+
+        body.high-contrast .text-orange-700,
+        body.high-contrast .text-orange-600 {
+            color: #fbbf24 !important;
+        }
+    </style>
+<script type="importmap">
+{
+  "imports": {
+    "lucide-react": "https://esm.sh/lucide-react@^0.562.0",
+    "react/": "https://esm.sh/react@^19.2.3/",
+    "react": "https://esm.sh/react@^19.2.3",
+    "react-dom/": "https://esm.sh/react-dom@^19.2.3/",
+    "date-fns/": "https://esm.sh/date-fns@^4.1.0/",
+    "date-fns": "https://esm.sh/date-fns@^4.1.0",
+    "@google/genai": "https://esm.sh/@google/genai@^1.34.0"
+  }
+}
+</script>
 </head>
 <body class="bg-slate-50 text-slate-900 font-sans">
-  <div id="root"></div>
+    <div id="root"></div>
 </body>
 </html>
