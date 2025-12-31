@@ -1,7 +1,7 @@
 
 import React, { useState, useRef, useEffect } from 'react';
-import { Contract, Activity, Collaborator, ProgressLevel, ActivityStatus } from '../types';
-import { Plus, Trash2, Edit2, Archive, ArchiveRestore, CheckCircle2, AlertCircle, MessageSquare, Calendar, Camera, Loader2, Save, X, Lock, AlertTriangle, ChevronDown, ChevronUp, Ship } from 'lucide-react';
+import { Contract, Activity, Collaborator, ProgressLevel, ActivityStatus, ActivityNote } from '../types';
+import { Plus, Trash2, Edit2, Archive, ArchiveRestore, MessageSquare, Calendar, Camera, Loader2, X, Lock, AlertTriangle, ChevronDown, ChevronUp, Ship, Check } from 'lucide-react';
 import { format, isAfter, parseISO, startOfDay } from 'date-fns';
 import { GoogleGenAI } from "@google/genai";
 import { generateSafeId } from '../App';
@@ -116,43 +116,146 @@ const SimpleConfirmModal: React.FC<{
 
 const NotesPopup: React.FC<{
   isOpen: boolean;
-  notes: string;
-  onSave: (val: string) => void;
+  notes: ActivityNote[];
+  onSave: (notes: ActivityNote[]) => void;
   onClose: () => void;
 }> = ({ isOpen, notes, onSave, onClose }) => {
-  const [tempNotes, setTempNotes] = useState(notes);
-  
+  const [newNoteText, setNewNoteText] = useState('');
+  const [editingNoteId, setEditingNoteId] = useState<string | null>(null);
+  const [editingText, setEditingText] = useState('');
+  const scrollRef = useRef<HTMLDivElement>(null);
+
   useEffect(() => {
-    if (isOpen) setTempNotes(notes);
-  }, [isOpen, notes]);
+    if (scrollRef.current) {
+      scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
+    }
+  }, [notes, isOpen]);
 
   if (!isOpen) return null;
 
+  const handleAddNote = () => {
+    if (!newNoteText.trim()) return;
+    const newNote: ActivityNote = {
+      id: generateSafeId(),
+      text: newNoteText.trim(),
+      createdAt: format(new Date(), "dd/MM/yy HH:mm")
+    };
+    onSave([...notes, newNote]);
+    setNewNoteText('');
+  };
+
+  const handleUpdateNote = (id: string) => {
+    if (!editingText.trim()) return;
+    const updated = notes.map(n => n.id === id ? { ...n, text: editingText.trim() } : n);
+    onSave(updated);
+    setEditingNoteId(null);
+  };
+
+  const removeNote = (id: string) => {
+    onSave(notes.filter(n => n.id !== id));
+  };
+
   return (
     <div className="fixed inset-0 z-[120] flex items-center justify-center p-4 bg-slate-900/50 backdrop-blur-sm animate-in fade-in duration-200">
-      <div className="bg-white rounded-2xl shadow-2xl border border-slate-200 w-full max-w-lg overflow-hidden animate-in zoom-in-95 duration-200">
-        <div className="bg-slate-100 p-4 flex items-center justify-between border-b">
+      <div className="bg-white rounded-2xl shadow-2xl border border-slate-200 w-full max-w-lg overflow-hidden animate-in zoom-in-95 duration-200 flex flex-col max-h-[80vh]">
+        <div className="bg-slate-100 p-4 flex items-center justify-between border-b shrink-0">
           <div className="flex items-center gap-2">
-            <MessageSquare className="w-5 h-5 text-blue-600" />
-            <h3 className="font-bold text-slate-800">Observações da Atividade</h3>
+            <div className="bg-blue-600 p-1.5 rounded-lg">
+              <MessageSquare className="w-4 h-4 text-white" />
+            </div>
+            <h3 className="font-black text-slate-800 text-sm uppercase tracking-tight">Histórico de Observações</h3>
           </div>
-          <button onClick={onClose} className="p-1 hover:bg-slate-200 rounded-full transition-colors"><X className="w-5 h-5 text-slate-500" /></button>
+          <button onClick={onClose} className="p-1.5 hover:bg-slate-200 rounded-full transition-colors">
+            <X className="w-5 h-5 text-slate-500" />
+          </button>
         </div>
-        <div className="p-5">
-          <textarea
-            autoFocus
-            className="w-full h-40 p-4 border border-slate-300 rounded-xl bg-white text-slate-900 outline-none focus:ring-2 focus:ring-blue-100 focus:border-blue-500 transition-all resize-none font-medium"
-            placeholder="Digite aqui as observações técnicas..."
-            value={tempNotes}
-            onChange={(e) => setTempNotes(e.target.value)}
-          />
-          <div className="flex gap-2 mt-4">
-            <button onClick={onClose} className="flex-1 px-4 py-2.5 text-slate-500 font-bold hover:bg-slate-100 rounded-xl transition-all">Cancelar</button>
+        
+        <div ref={scrollRef} className="p-5 overflow-y-auto space-y-4 flex-grow bg-slate-50/50">
+          {notes.length === 0 ? (
+            <div className="py-16 text-center text-slate-400">
+              <MessageSquare className="w-12 h-12 mx-auto mb-3 opacity-10" />
+              <p className="text-xs font-black uppercase tracking-widest text-slate-300">Sem observações</p>
+              <p className="text-[10px] mt-2 italic">Adicione uma nota no campo inferior</p>
+            </div>
+          ) : (
+            notes.map((note) => (
+              <div 
+                key={note.id} 
+                className={`bg-white p-4 rounded-xl border shadow-sm group animate-in slide-in-from-bottom-2 relative transition-all ${editingNoteId === note.id ? 'border-blue-500 ring-2 ring-blue-50' : 'border-slate-200 hover:border-slate-300'}`}
+              >
+                <div className="flex justify-between items-start gap-4">
+                  {editingNoteId === note.id ? (
+                    <div className="flex-grow flex flex-col gap-2">
+                      <textarea
+                        autoFocus
+                        className="w-full p-3 text-sm font-bold border rounded-xl bg-slate-50 outline-none focus:ring-2 focus:ring-blue-100 resize-none h-24"
+                        value={editingText}
+                        onChange={(e) => setEditingText(e.target.value)}
+                        onKeyDown={(e) => {
+                          if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); handleUpdateNote(note.id); }
+                          if (e.key === 'Escape') setEditingNoteId(null);
+                        }}
+                      />
+                      <div className="flex justify-end gap-2">
+                        <button onClick={() => setEditingNoteId(null)} className="px-3 py-1.5 text-[10px] font-bold text-slate-500 hover:bg-slate-100 rounded-lg uppercase">Cancelar</button>
+                        <button onClick={() => handleUpdateNote(note.id)} className="px-4 py-1.5 bg-blue-600 text-white rounded-lg text-[10px] font-black uppercase shadow-md flex items-center gap-1">
+                          <Check className="w-3.5 h-3.5" /> Salvar
+                        </button>
+                      </div>
+                    </div>
+                  ) : (
+                    <>
+                      <div className="flex-grow">
+                        <p 
+                          onDoubleClick={() => { setEditingNoteId(note.id); setEditingText(note.text); }}
+                          className="text-xs sm:text-sm font-bold text-slate-800 leading-relaxed break-words cursor-text selection:bg-blue-100"
+                        >
+                          {note.text}
+                        </p>
+                        <span className="text-[9px] font-black text-slate-400 uppercase tracking-tighter mt-1 block">
+                          {note.createdAt}
+                        </span>
+                      </div>
+                      
+                      <div className="flex flex-col gap-2 shrink-0">
+                        <button 
+                          onClick={() => { setEditingNoteId(note.id); setEditingText(note.text); }}
+                          className="p-2.5 text-blue-600 bg-blue-50 hover:bg-blue-100 rounded-xl transition-all border border-blue-200 shadow-sm"
+                          title="Editar"
+                        >
+                          <Edit2 className="w-4 h-4" />
+                        </button>
+                        <button 
+                          onClick={() => removeNote(note.id)}
+                          className="p-2.5 text-red-600 bg-red-50 hover:bg-red-100 rounded-xl transition-all border border-red-200 shadow-sm"
+                          title="Excluir"
+                        >
+                          <Trash2 className="w-4 h-4" />
+                        </button>
+                      </div>
+                    </>
+                  )}
+                </div>
+              </div>
+            ))
+          )}
+        </div>
+
+        <div className="p-4 bg-white border-t shrink-0">
+          <div className="flex gap-2">
+            <textarea
+              className="flex-grow p-3 border border-slate-300 rounded-xl bg-slate-50 text-slate-900 outline-none focus:ring-2 focus:ring-blue-100 focus:border-blue-500 transition-all resize-none font-bold text-xs sm:text-sm h-20"
+              placeholder="Digite uma nova observação..."
+              value={newNoteText}
+              onChange={(e) => setNewNoteText(e.target.value)}
+              onKeyDown={(e) => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); handleAddNote(); } }}
+            />
             <button 
-              onClick={() => { onSave(tempNotes); onClose(); }} 
-              className="flex-1 px-4 py-2.5 bg-blue-600 text-white font-bold rounded-xl hover:bg-blue-700 shadow-md transition-all active:scale-95"
+              onClick={handleAddNote}
+              disabled={!newNoteText.trim()}
+              className="w-14 h-14 self-end bg-blue-600 text-white rounded-xl flex items-center justify-center shadow-lg hover:bg-blue-700 transition-all active:scale-95 disabled:opacity-50 disabled:grayscale"
             >
-              Salvar Observação
+              <Plus className="w-8 h-8" />
             </button>
           </div>
         </div>
@@ -374,7 +477,7 @@ const ContractCard: React.FC<{
       endDate: actForm.endDate,
       progress: 0,
       status: ActivityStatus.ANDAMENTO,
-      notes: ''
+      notes: []
     };
     onUpdate(contract.id, { activities: [...contract.activities, newActivity] });
     setActForm({ description: '', startDate: '', endDate: '' });
@@ -415,7 +518,7 @@ const ContractCard: React.FC<{
         endDate: a.endDate || new Date(Date.now() + 7 * 86400000).toISOString().split('T')[0],
         progress: 0,
         status: ActivityStatus.ANDAMENTO,
-        notes: ''
+        notes: []
       }));
 
       if (newActivities.length > 0) {
@@ -455,7 +558,6 @@ const ContractCard: React.FC<{
         </div>
       )}
       
-      {/* Cabeçalho que atua como Miniatura/Botão de Expansão */}
       <div 
         onClick={() => setIsExpanded(!isExpanded)}
         className={`p-3 sm:p-4 border-b flex justify-between items-center gap-2 cursor-pointer transition-colors ${isContractOverdue ? 'bg-orange-50 border-orange-200' : 'bg-slate-50 hover:bg-slate-100'}`}
@@ -475,18 +577,16 @@ const ContractCard: React.FC<{
         </div>
         
         <div className="flex items-center gap-1 sm:gap-2 shrink-0">
-          {/* Botões de Ação Rápidos (Visíveis mesmo colapsados) */}
           <div className="flex items-center gap-1 sm:mr-2" onClick={(e) => e.stopPropagation()}>
-            <button onClick={onEdit} className="p-1.5 text-slate-400 hover:text-blue-600 rounded-lg transition-all"><Edit2 className="w-3.5 h-3.5 sm:w-4 sm:h-4" /></button>
-            <button onClick={onArchive} className="p-1.5 text-slate-400 hover:text-amber-600 rounded-lg transition-all"><Archive className="w-3.5 h-3.5 sm:w-4 sm:h-4" /></button>
-            <button onClick={onDelete} className="p-1.5 text-slate-300 hover:text-red-600 rounded-lg transition-all"><Trash2 className="w-3.5 h-3.5 sm:w-4 sm:h-4" /></button>
+            <button onClick={onEdit} className="p-2 text-blue-600 bg-blue-50 hover:bg-blue-100 rounded-lg transition-all border border-blue-100 shadow-sm" title="Editar"><Edit2 className="w-3.5 h-3.5 sm:w-4 sm:h-4" /></button>
+            <button onClick={onArchive} className="p-2 text-amber-600 bg-amber-50 hover:bg-amber-100 rounded-lg transition-all border border-amber-100 shadow-sm" title={contract.isArchived ? "Desarquivar" : "Arquivar"}>{contract.isArchived ? <ArchiveRestore className="w-3.5 h-3.5 sm:w-4 sm:h-4" /> : <Archive className="w-3.5 h-3.5 sm:w-4 sm:h-4" />}</button>
+            <button onClick={onDelete} className="p-2 text-red-600 bg-red-50 hover:bg-red-100 rounded-lg transition-all border border-red-100 shadow-sm" title="Excluir"><Trash2 className="w-3.5 h-3.5 sm:w-4 sm:h-4" /></button>
           </div>
           <div className="h-6 w-px bg-slate-200 mx-1 hidden sm:block" />
           {isExpanded ? <ChevronUp className="w-5 h-5 text-slate-400" /> : <ChevronDown className="w-5 h-5 text-slate-400" />}
         </div>
       </div>
 
-      {/* Conteúdo Expansível */}
       {isExpanded && (
         <div className="p-4 space-y-5 animate-in slide-in-from-top-2 duration-300 border-t border-slate-100">
           <div className="flex flex-col sm:flex-row justify-between gap-4">
@@ -541,7 +641,7 @@ const ContractCard: React.FC<{
                 <input required type="date" className="px-3 py-2 border border-slate-300 rounded-md text-sm bg-white text-slate-900 outline-none" value={actForm.endDate} onChange={e => setActForm({ ...actForm, endDate: e.target.value })} />
                 <div className="flex gap-2">
                   <button type="submit" className="flex-1 bg-blue-600 text-white rounded-md text-xs font-bold hover:bg-blue-700 shadow-sm transition-colors">Criar</button>
-                  <button type="button" onClick={() => setIsAddingActivity(false)} className="px-2 text-slate-400 hover:text-slate-600"><Trash2 className="w-4 h-4"/></button>
+                  <button type="button" onClick={() => setIsAddingActivity(false)} className="px-3 py-2 bg-red-50 text-red-600 rounded-md border border-red-100 hover:bg-red-100"><Trash2 className="w-4 h-4"/></button>
                 </div>
               </form>
             )}
@@ -584,6 +684,8 @@ const ActivityRow: React.FC<{
   const today = startOfDay(new Date());
   const isOverdue = (isAfter(today, parseISO(activity.endDate)) || isAfter(today, parseISO(contractEndDate))) && activity.progress < 100;
 
+  const safeNotes = Array.isArray(activity.notes) ? activity.notes : [];
+
   if (isEditing) {
     return (
       <div className="p-3 border rounded-lg bg-blue-50 border-blue-200">
@@ -612,8 +714,8 @@ const ActivityRow: React.FC<{
 
       <NotesPopup 
         isOpen={showNotesPopup}
-        notes={activity.notes}
-        onSave={(val) => onUpdate({ notes: val })}
+        notes={safeNotes}
+        onSave={(newNotes) => onUpdate({ notes: newNotes })}
         onClose={() => setShowNotesPopup(false)}
       />
       
@@ -631,16 +733,33 @@ const ActivityRow: React.FC<{
             onMouseEnter={() => setIsHoveringNotes(true)}
             onMouseLeave={() => setIsHoveringNotes(false)}
             onClick={() => setShowNotesPopup(true)}
-            className={`p-1.5 rounded-lg transition-all border shrink-0 ${activity.notes ? 'bg-emerald-500 text-white border-emerald-600 shadow-sm' : 'bg-white text-slate-400 border-slate-200 hover:border-blue-400 hover:text-blue-600'}`}
+            className={`p-2 rounded-lg transition-all border shrink-0 ${safeNotes.length > 0 ? 'bg-emerald-500 text-white border-emerald-600 shadow-sm' : 'bg-white text-slate-400 border-slate-200 hover:border-blue-400 hover:text-blue-600'}`}
           >
-            <MessageSquare className="w-3.5 h-3.5" />
+            <MessageSquare className="w-4 h-4" />
           </button>
           
-          {isHoveringNotes && activity.notes && (
-            <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-3 w-64 sm:w-80 bg-white text-slate-900 p-6 rounded-2xl shadow-2xl z-[150] border-2 border-slate-200 animate-in fade-in zoom-in-95 pointer-events-none">
-              <p className="text-lg sm:text-2xl font-bold leading-snug break-words text-center">{activity.notes}</p>
-              <div className="absolute top-full left-1/2 -translate-x-1/2 border-[10px] border-transparent border-t-white" />
-              <div className="absolute top-full left-1/2 -translate-x-1/2 border-[12px] border-transparent border-t-slate-200 -z-10 translate-y-[1px]" />
+          {isHoveringNotes && safeNotes.length > 0 && (
+            <div className="fixed inset-0 z-[300] flex items-center justify-center p-4 bg-slate-900/10 backdrop-blur-[1px] pointer-events-none transition-all duration-300">
+              <div className="w-[calc(100vw-3rem)] max-w-md bg-white p-5 rounded-3xl shadow-2xl border-2 border-slate-200 animate-in fade-in zoom-in-90 slide-in-from-bottom-4 duration-300">
+                <div className="flex items-center gap-2 mb-4 border-b border-slate-100 pb-3">
+                  <div className="bg-blue-100 p-1.5 rounded-lg">
+                    <MessageSquare className="w-4 h-4 text-blue-600" />
+                  </div>
+                  <h4 className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Prévia de Observações</h4>
+                </div>
+                <div className="space-y-4">
+                  {safeNotes.map((note) => (
+                    <div key={note.id} className="border-b border-slate-100 last:border-0 pb-3 last:pb-0">
+                        <p className="text-xs sm:text-sm font-bold text-slate-800 leading-snug break-words">
+                          {note.text}
+                        </p>
+                        <p className="text-[9px] font-black text-slate-400 uppercase tracking-tighter text-right mt-2 italic">
+                          {note.createdAt}
+                        </p>
+                    </div>
+                  ))}
+                </div>
+              </div>
             </div>
           )}
         </div>
@@ -674,8 +793,8 @@ const ActivityRow: React.FC<{
         
         {!disabled && (
           <div className="flex items-center gap-1 ml-auto lg:ml-2">
-            <button onClick={() => setIsEditing(true)} className="p-1.5 text-slate-400 hover:text-blue-600 transition-colors rounded-md" title="Editar"><Edit2 className="w-3.5 h-3.5 sm:w-4 sm:h-4" /></button>
-            <button onClick={() => setShowDeleteConfirm(true)} className="p-1.5 text-slate-300 hover:text-red-500 transition-colors rounded-md" title="Excluir"><Trash2 className="w-3.5 h-3.5 sm:w-4 sm:h-4" /></button>
+            <button onClick={() => setIsEditing(true)} className="p-2 text-blue-600 bg-blue-50 hover:bg-blue-100 rounded-lg transition-all border border-blue-100 shadow-sm" title="Editar"><Edit2 className="w-3.5 h-3.5 sm:w-4 sm:h-4" /></button>
+            <button onClick={() => setShowDeleteConfirm(true)} className="p-2 text-red-600 bg-red-50 hover:bg-red-100 rounded-lg transition-all border border-red-100 shadow-sm" title="Excluir"><Trash2 className="w-3.5 h-3.5 sm:w-4 sm:h-4" /></button>
           </div>
         )}
       </div>

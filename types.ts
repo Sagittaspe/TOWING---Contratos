@@ -11,6 +11,12 @@ export enum ActivityStatus {
 
 export type ProgressLevel = 25 | 50 | 75 | 100 | 0;
 
+export interface ActivityNote {
+  id: string;
+  text: string;
+  createdAt: string;
+}
+
 export interface Collaborator {
   id: string;
   name: string;
@@ -25,7 +31,7 @@ export interface Activity {
   endDate: string;
   progress: ProgressLevel;
   status: ActivityStatus;
-  notes: string;
+  notes: ActivityNote[];
 }
 
 export interface Contract {

@@ -60,13 +60,19 @@ export const generateContractsPDF = (contracts: Contract[], collaborators: Colla
     currentY += 8;
 
     if (contract.activities.length > 0) {
-      const tableData = contract.activities.map(act => [
-        act.description,
-        `${format(parseISO(act.startDate), 'dd/MM')} - ${format(parseISO(act.endDate), 'dd/MM')}`,
-        `${act.progress}%`,
-        act.status,
-        act.notes || '-'
-      ]);
+      const tableData = contract.activities.map(act => {
+        const notesSummary = Array.isArray(act.notes) 
+          ? act.notes.map(n => `[${n.createdAt}] ${n.text}`).join('\n')
+          : (act.notes || '-');
+
+        return [
+          act.description,
+          `${format(parseISO(act.startDate), 'dd/MM')} - ${format(parseISO(act.endDate), 'dd/MM')}`,
+          `${act.progress}%`,
+          act.status,
+          notesSummary
+        ];
+      });
 
       doc.autoTable({
         startY: currentY,
@@ -163,13 +169,17 @@ export const generateWeeklyPDF = (contracts: Contract[], collaborators: Collabor
       const tableData = dayActivities.map(act => {
         const colabs = collaborators.filter(c => act.colabIds.includes(c.id)).map(c => c.name).join(', ');
         const isDelayed = isAfter(day, parseISO(act.endDate)) && act.progress < 100;
+        const notesSummary = Array.isArray(act.notes) 
+          ? act.notes.map(n => n.text).join('; ')
+          : (act.notes || '-');
+
         return [
           `#${act.contractNumber}`,
           isDelayed ? `[ATRASADO] ${act.description}` : act.description,
           colabs || '-',
           `${act.progress}%`,
           act.status,
-          act.notes || '-'
+          notesSummary
         ];
       });
 

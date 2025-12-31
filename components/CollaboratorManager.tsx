@@ -1,7 +1,7 @@
 
 import React, { useState, useRef, useEffect } from 'react';
 import { Collaborator, Specialty } from '../types';
-import { UserPlus, Edit2, Hammer, Wrench, User, X, Archive, ArchiveRestore, Trash2, Lock } from 'lucide-react';
+import { UserPlus, Edit2, Hammer, Wrench, User, Archive, ArchiveRestore, Trash2, Lock } from 'lucide-react';
 
 interface CollaboratorManagerProps {
   collaborators: Collaborator[];
@@ -192,10 +192,10 @@ const CollaboratorCard: React.FC<{
         <p className="text-[9px] text-slate-400 font-black uppercase tracking-widest mt-0.5">{c.specialty}</p>
       </div>
     </div>
-    <div className="flex items-center gap-0.5 shrink-0">
-      <button onClick={onEdit} className="p-2 text-slate-400 hover:text-blue-600 transition-all" title="Editar"><Edit2 className="w-4 h-4" /></button>
-      <button onClick={onArchive} className="p-2 text-slate-400 hover:text-amber-600 transition-all" title={c.isArchived ? 'Desarquivar' : 'Arquivar'}>{c.isArchived ? <ArchiveRestore className="w-4 h-4" /> : <Archive className="w-4 h-4" />}</button>
-      <button onClick={onDelete} className="p-2 text-slate-300 hover:text-red-500 transition-all" title="Excluir"><Trash2 className="w-4 h-4" /></button>
+    <div className="flex items-center gap-1.5 shrink-0">
+      <button onClick={onEdit} className="p-2.5 text-blue-600 bg-blue-50 hover:bg-blue-100 rounded-xl transition-all border border-blue-100 shadow-sm" title="Editar"><Edit2 className="w-4 h-4" /></button>
+      <button onClick={onArchive} className="p-2.5 text-amber-600 bg-amber-50 hover:bg-amber-100 rounded-xl transition-all border border-amber-100 shadow-sm" title={c.isArchived ? 'Desarquivar' : 'Arquivar'}>{c.isArchived ? <ArchiveRestore className="w-4 h-4" /> : <Archive className="w-4 h-4" />}</button>
+      <button onClick={onDelete} className="p-2.5 text-red-600 bg-red-50 hover:bg-red-100 rounded-xl transition-all border border-red-200 shadow-sm" title="Excluir"><Trash2 className="w-4 h-4" /></button>
     </div>
   </div>
 );
